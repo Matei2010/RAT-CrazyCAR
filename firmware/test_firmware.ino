@@ -1,4 +1,3 @@
-
 #include "VL53L0X.h"
 #include "TCA9548.h"
 #include "Wire.h"
@@ -8,43 +7,40 @@ const int o = 5;
 VL53L0X sensors[o];
 uint16_t distances[o];
 int counter = 0;
-int ver;
+int ver = 0;
+
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
   Wire.begin();
-  Wire.setClock(400000); // 400 kHz Fast I2C
-  
-  if(!MP.begin()){
+  Wire.setClock(100000); // 100 kHz I2C for reliable 50 Hz polling across all 5 channels
+
+  if (!MP.begin()) {
     Serial.println("TCA9548 not found!");
-    while(1);
+    while (1);
   }
-  for (uint8_t i = 0; i<o;i++ ){
+  for (uint8_t i = 0; i < o; i++) {
     MP.selectChannel(i);
     sensors[i].setTimeout(500);
-    sensors[i].startContinuous();
     if (!sensors[i].init()) {
       Serial.print("Sensor failed on channel ");
       Serial.println(i);
       while (1);
-      
+    }
+    sensors[i].setMeasurementTimingBudget(20000); // 20 ms timing budget (50 Hz)
+    sensors[i].startContinuous();
   }
 }
 
-}
 void loop() {
-  // put your main code here, to run repeatedly:
-for (uint8_t i = 0; i < o; i++) {
+  for (uint8_t i = 0; i < o; i++) {
     MP.selectChannel(i);
-    
     distances[i] = sensors[i].readRangeContinuousMillimeters();
-}
-Serial.println(distances[counter]);
-counter++;
-if (counter > 5){
-  counter = 0;
-}
+  }
+  Serial.println(distances[counter]);
+  counter++;
+  if (counter >= o) {
+    counter = 0;
+  }
 
-ver = (distance[0]+distance[1]+distance[2]+distance[3]+distance[4])/5;
-  
+  ver = (distances[0] + distances[1] + distances[2] + distances[3] + distances[4]) / 5;
 }
